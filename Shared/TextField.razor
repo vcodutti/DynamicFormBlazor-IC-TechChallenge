@@ -1,0 +1,45 @@
+﻿@using DynamicFormBlazor.Models
+@using DynamicFormBlazor.Shared
+@using Microsoft.AspNetCore.Components.Forms
+
+@namespace DynamicFormBlazor.Shared
+
+@if (Field.Type == "text" || Field.Type == "email" || Field.Type == "number")
+{
+    <input @bind="Field.Value"
+           type="@Field.Type"
+           class="form-control"
+           placeholder="@Field.Label"
+           @attributes="Field.GetValidationAttributes()" />
+    <ValidationMessage For="@(() => Field.Value)" />
+}
+else if (Field.Type == "dropdown")
+{
+    <DropdownField Values="@Field.Values" Value="@Field.Value" ValueChanged="@((string? newValue) => Field.Value = newValue)" Label="@Field.Label" />
+    <ValidationMessage For="@(() => Field.Value)" />
+}
+else if (Field.Type == "checkbox")
+{
+    <CheckboxField Label="@Field.Label" Value="@Field.ValueBool" ValueChanged="@((bool newValue) => Field.ValueBool = newValue)" />
+    <ValidationMessage For="@(() => Field.ValueBool)" />
+}
+
+@code {
+    [Parameter] public FormField Field { get; set; } = new();
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        try
+        {
+            if (Field.Type == "number" && string.IsNullOrEmpty(Field.Value))
+            {
+                Field.Value = (Field.Min?.ToString() ?? "0");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error initializing field: {ex.Message}");
+        }
+    }
+}

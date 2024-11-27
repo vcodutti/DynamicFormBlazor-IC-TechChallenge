@@ -1,0 +1,78 @@
+﻿@page "/"
+@using DynamicFormBlazor.Models
+@using DynamicFormBlazor.Shared
+@using System.Text.Json
+@using System.Linq
+
+
+@namespace DynamicFormBlazor.Shared
+
+<h3>@FormConfig.Title</h3>
+<EditForm Model="@FormConfig" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    @foreach (var field in FormConfig.Fields)
+    {
+        <div class="mb-3">
+            <TextField Field="field" />
+        </div>
+    }
+    <button type="submit" class="btn btn-primary">Submit</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(AlertMessage))
+{
+    <div class="alert @AlertClass" role="alert">
+        @AlertMessage
+    </div>
+}
+
+<div>
+    <pre>@Output</pre>
+</div>
+
+
+@code {
+    private FormConfiguration FormConfig = new()
+        {
+            Fields = new()
+            {
+                new FormField { Type = "text", Label = "Name", Required = true },
+                new FormField { Type = "email", Label = "Email", Required = true },
+                new FormField { Type = "number", Label = "Age", Min = 18, Max = 100 },
+                new FormField { Type = "dropdown", Label = "Industry", Values = new List<string>() { "Tech", "Production", "Health" }, Required = true },
+                new FormField { Type = "checkbox", Label = "Subscribe to Newsletter" }
+            }
+        };
+
+    private string Output = string.Empty;
+    private string AlertMessage = string.Empty;
+    private string AlertClass = string.Empty;
+
+    private void HandleSubmit()
+    {
+        try
+        {
+            var fieldValues = FormConfig.Fields.ToDictionary(
+                f => f.Label,
+                f => (object)(f.Type switch 
+                {
+                    "checkbox" => f.ValueBool, 
+                    "number" => int.TryParse(f.Value, out var numberValue) ? numberValue : (f.Min ?? 0),
+                    _ => f.Value ?? string.Empty 
+                }));
+
+            Output = JsonSerializer.Serialize(fieldValues, new JsonSerializerOptions { WriteIndented = true });
+
+            AlertMessage = "Form submitted successfully!";
+            AlertClass = "alert-success";
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error submitting form: {ex.Message}");
+
+            AlertMessage = "Error submitting form. Please try again.";
+            AlertClass = "alert-danger";
+        }
+    }
+}

@@ -1,0 +1,29 @@
+﻿@namespace DynamicFormBlazor.Shared
+
+@if (Values == null || !Values.Any())
+{
+    <div class="alert alert-warning">No options available for @Label</div>
+}
+else
+{
+    <select @onchange="OnValueChanged" class="form-select" required>
+        <option value="" disabled selected="@string.IsNullOrEmpty(Value)">Select an option - @Label</option>
+        @foreach (var item in Values)
+        {
+            <option value="@item">@item</option>
+        }
+    </select>
+}
+
+@code {
+    [Parameter] public List<string> Values { get; set; } = new();
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public string Label { get; set; } = string.Empty;
+
+    private async Task OnValueChanged(ChangeEventArgs e)
+    {
+        Value = e.Value?.ToString();
+        await ValueChanged.InvokeAsync(Value);
+    }
+}
