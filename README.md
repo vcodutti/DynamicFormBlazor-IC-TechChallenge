@@ -19,8 +19,7 @@ Key Components
 
 Step-by-Step Execution
 1.	Clone the Repository: Clone the project repository to your local machine.
-    git clone <repository-url>
-    cd <repository-directory>
+    git clone https://github.com/vcodutti/DynamicFormBlazor-IC-TechChallenge.git
 2.	Open the Project in Visual Studio: Open the solution file (.sln) in Visual Studio.
 3.	Restore NuGet Packages: Restore the required NuGet packages by right-clicking on the solution.
 4.	Build the Project: Build the project to ensure that all dependencies are resolved and there are no 
