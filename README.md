@@ -41,4 +41,5 @@ Decision-making statements
 - The application includes error handling and user feedback mechanisms (alerts for success and error messages). Providing
   feedback to users is essential for a good user experience. By displaying success and error messages, the application
   informs users about the status of their actions, helping them understand whether their input was processed correctly or
-  if there were issues that need to be addressed.
+  if there were issues that need to be addressed.![BlazorResults](https://github.com/user-attachments/assets/fc07ca5a-3114-4232-b8a8-54d6a6801218)
+
