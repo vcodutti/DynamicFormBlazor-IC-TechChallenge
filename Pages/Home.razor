@@ -1,78 +1,134 @@
 ﻿@page "/"
 @using DynamicFormBlazor.Models
 @using DynamicFormBlazor.Shared
+@using DynamicFormBlazor.Services
 @using System.Text.Json
 @using System.Linq
+@using System.ComponentModel.DataAnnotations
+@inject NavigationManager Navigation
+@inject DataTransferService DataTransferService
 
 
 @namespace DynamicFormBlazor.Shared
 
-<h3>@FormConfig.Title</h3>
-<EditForm Model="@FormConfig" OnValidSubmit="HandleSubmit">
+<h3>Enter your JSON</h3>
+
+<EditForm Model="@formData" OnValidSubmit="@ProcessJsonInput">
     <DataAnnotationsValidator />
     <ValidationSummary />
-    @foreach (var field in FormConfig.Fields)
-    {
-        <div class="mb-3">
-            <TextField Field="field" />
-        </div>
-    }
-    <button type="submit" class="btn btn-primary">Submit</button>
+
+    <div class="mb-3">
+        <textarea name="" id="jsonInput" class="form-control" @bind="formData.JsonInput"></textarea>
+        <ValidationMessage For="@(() => formData.JsonInput)" />
+    </div>    
+
+    <button type="submit" class="btn btn-primary">Generate Form</button>
 </EditForm>
 
-@if (!string.IsNullOrEmpty(AlertMessage))
+@if (!string.IsNullOrEmpty(errorMessage))
 {
     <div class="alert @AlertClass" role="alert">
-        @AlertMessage
+        @errorMessage
     </div>
 }
 
-<div>
-    <pre>@Output</pre>
-</div>
-
-
 @code {
-    private FormConfiguration FormConfig = new()
-        {
-            Fields = new()
-            {
-                new FormField { Type = "text", Label = "Name", Required = true },
-                new FormField { Type = "email", Label = "Email", Required = true },
-                new FormField { Type = "number", Label = "Age", Min = 18, Max = 100 },
-                new FormField { Type = "dropdown", Label = "Industry", Values = new List<string>() { "Tech", "Production", "Health" }, Required = true },
-                new FormField { Type = "checkbox", Label = "Subscribe to Newsletter" }
-            }
-        };
 
-    private string Output = string.Empty;
-    private string AlertMessage = string.Empty;
-    private string AlertClass = string.Empty;
+    private string jsonInput = string.Empty;
+    private string errorMessage = string.Empty;
+    private const string AlertClass = "alert-danger";
+    private FormModel formData = new();
 
-    private void HandleSubmit()
+    private void ProcessJsonInput()
     {
         try
         {
-            var fieldValues = FormConfig.Fields.ToDictionary(
-                f => f.Label,
-                f => (object)(f.Type switch 
+            errorMessage = string.Empty;
+            var deserializedJson = JsonSerializer.Deserialize<FormConfiguration>(formData.JsonInput, new JsonSerializerOptions
                 {
-                    "checkbox" => f.ValueBool, 
-                    "number" => int.TryParse(f.Value, out var numberValue) ? numberValue : (f.Min ?? 0),
-                    _ => f.Value ?? string.Empty 
-                }));
+                    PropertyNameCaseInsensitive = true
+                });
 
-            Output = JsonSerializer.Serialize(fieldValues, new JsonSerializerOptions { WriteIndented = true });
 
-            AlertMessage = "Form submitted successfully!";
-            AlertClass = "alert-success";
+            ValidateFormConfiguration(deserializedJson);
+
+            foreach(var field in deserializedJson.Fields) 
+            {
+                ValidateFormField(field);
+            }
+
+            DataTransferService.SetData(deserializedJson);
+            Navigation.NavigateTo("/result");
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Error submitting form: {ex.Message}");
-
-            AlertMessage = "Error submitting form. Please try again.";
-            AlertClass = "alert-danger";
+            errorMessage = ex.Message;
         }
+    }
+
+    private void ValidateFormConfiguration(FormConfiguration formConfiguration) 
+    {
+        if(formConfiguration == null) 
+        {
+            throw new Exception("The JSON input cannot be null or empty.");
+        }
+
+        if(string.IsNullOrEmpty(formConfiguration.Title)) 
+        {
+            throw new Exception("The property Title of the JSON cannot be null or empty.");
+        }
+
+        if(formConfiguration.Fields == null) 
+        {
+            throw new Exception("The property Fields of the JSON cannot be null");
+        }
+
+        if(formConfiguration.Fields.Count == 0) 
+        {
+            throw new Exception("The property Fields of the JSON should have at least one field to continue");
+        }
+      
+
+    }
+
+    private void ValidateFormField(FormField formField) 
+    {
+
+        if(string.IsNullOrEmpty(formField.Label)) 
+        {
+            throw new Exception($"No Label specification for {formField.Type}. Please provide one to continue");
+        }
+
+        if(formField.Type.ToLower() == "number") 
+        {
+            if(formField.Min < 0) 
+            {
+                throw new Exception("The value for property Min cannot be less than 0");
+            }
+
+            if(formField.Max < 0) 
+            {
+                throw new Exception("The value for property Max cannot be less than 0");
+            }
+
+            if (formField.Min > formField.Max) 
+            {
+                throw new Exception(" The value for Min cannot be greater than the value for Max");
+            }
+        }
+
+        if(formField.Type.ToLower() == "dropdown") 
+        {
+            if(formField.Values == null) 
+            {
+                throw new Exception("The values for dropdown field cannot be null");
+            }
+
+            if(formField.Values.Count == 0) 
+            {
+                throw new Exception("The dropdown field should have at least one value to display");
+            }
+        }
+
     }
 }

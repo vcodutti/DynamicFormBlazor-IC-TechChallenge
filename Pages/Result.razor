@@ -1,0 +1,91 @@
+﻿@page "/result"
+
+@using System.Text.Json
+@using DynamicFormBlazor.Models
+@using DynamicFormBlazor.Shared
+@using DynamicFormBlazor.Services
+
+@inject NavigationManager Navigation
+@inject DataTransferService DataTransferService
+
+
+@if (formData != null)
+{
+    <h3>@formData.Title</h3>
+    <EditForm Model="@formData" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        @foreach (var field in formData.Fields)
+        {
+            <div class="mb-3">
+                <TextField Field="field" />
+            </div>
+        }
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </EditForm>
+}
+else
+{
+    <p>No data to display</p>
+}
+
+
+
+@if (!string.IsNullOrEmpty(AlertMessage))
+{
+    <div class="alert @AlertClass" role="alert">
+        @AlertMessage
+    </div>
+}
+
+<div>
+    <pre>@Output</pre>
+</div>
+
+@code {
+
+    private FormConfiguration? formData;
+    private string Output = string.Empty;
+    private string AlertMessage = string.Empty;
+    private string AlertClass = string.Empty;
+
+   protected override void OnInitialized()
+   {
+        formData = DataTransferService.GetData<FormConfiguration>();
+        if (formData == null || formData.Fields.Count == 0)
+        {
+            Console.WriteLine("No data to display");
+        }
+   }
+
+    private void HandleSubmit()
+    {
+        try
+        {
+            var fieldValues = formData.Fields.ToDictionary(
+                f => f.Label,
+                f => (object)(f.Type switch
+                {
+                    "checkbox" => f.ValueBool,
+                    "number" => int.TryParse(f.Value, out var numberValue) ? numberValue : (f.Min ?? 0),
+                    _ => f.Value ?? string.Empty
+                }));
+
+            Output = JsonSerializer.Serialize(fieldValues, new JsonSerializerOptions { WriteIndented = true });
+
+            AlertMessage = "Form submitted successfully!";
+            AlertClass = "alert-success";
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error submitting form: {ex.Message}");
+
+            AlertMessage = "Error submitting form. Please try again.";
+            AlertClass = "alert-danger";
+        }
+    }
+
+
+
+
+}
