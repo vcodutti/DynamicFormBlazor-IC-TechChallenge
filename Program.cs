@@ -9,5 +9,6 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddSingleton<DataTransferService>();
+builder.Services.AddScoped<FormConfigurationValidator>();
 
 await builder.Build().RunAsync();

@@ -1,15 +1,10 @@
 ﻿@page "/"
 @using DynamicFormBlazor.Models
-@using DynamicFormBlazor.Shared
 @using DynamicFormBlazor.Services
 @using System.Text.Json
-@using System.Linq
-@using System.ComponentModel.DataAnnotations
 @inject NavigationManager Navigation
 @inject DataTransferService DataTransferService
-
-
-@namespace DynamicFormBlazor.Shared
+@inject FormConfigurationValidator Validator
 
 <h3>Enter your JSON</h3>
 
@@ -18,9 +13,9 @@
     <ValidationSummary />
 
     <div class="mb-3">
-        <textarea name="" id="jsonInput" class="form-control" @bind="formData.JsonInput"></textarea>
+        <textarea id="jsonInput" class="form-control" @bind="formData.JsonInput"></textarea>
         <ValidationMessage For="@(() => formData.JsonInput)" />
-    </div>    
+    </div>
 
     <button type="submit" class="btn btn-primary">Generate Form</button>
 </EditForm>
@@ -33,8 +28,6 @@
 }
 
 @code {
-
-    private string jsonInput = string.Empty;
     private string errorMessage = string.Empty;
     private const string AlertClass = "alert-danger";
     private FormModel formData = new();
@@ -44,18 +37,12 @@
         try
         {
             errorMessage = string.Empty;
-            var deserializedJson = JsonSerializer.Deserialize<FormConfiguration>(formData.JsonInput, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
 
+            var deserializedJson = JsonSerializer.Deserialize<FormConfiguration>(
+                formData.JsonInput,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            ValidateFormConfiguration(deserializedJson);
-
-            foreach(var field in deserializedJson.Fields) 
-            {
-                ValidateFormField(field);
-            }
+            Validator.Validate(deserializedJson);
 
             DataTransferService.SetData(deserializedJson);
             Navigation.NavigateTo("/result");
@@ -64,71 +51,5 @@
         {
             errorMessage = ex.Message;
         }
-    }
-
-    private void ValidateFormConfiguration(FormConfiguration formConfiguration) 
-    {
-        if(formConfiguration == null) 
-        {
-            throw new Exception("The JSON input cannot be null or empty.");
-        }
-
-        if(string.IsNullOrEmpty(formConfiguration.Title)) 
-        {
-            throw new Exception("The property Title of the JSON cannot be null or empty.");
-        }
-
-        if(formConfiguration.Fields == null) 
-        {
-            throw new Exception("The property Fields of the JSON cannot be null");
-        }
-
-        if(formConfiguration.Fields.Count == 0) 
-        {
-            throw new Exception("The property Fields of the JSON should have at least one field to continue");
-        }
-      
-
-    }
-
-    private void ValidateFormField(FormField formField) 
-    {
-
-        if(string.IsNullOrEmpty(formField.Label)) 
-        {
-            throw new Exception($"No Label specification for {formField.Type}. Please provide one to continue");
-        }
-
-        if(formField.Type.ToLower() == "number") 
-        {
-            if(formField.Min < 0) 
-            {
-                throw new Exception("The value for property Min cannot be less than 0");
-            }
-
-            if(formField.Max < 0) 
-            {
-                throw new Exception("The value for property Max cannot be less than 0");
-            }
-
-            if (formField.Min > formField.Max) 
-            {
-                throw new Exception(" The value for Min cannot be greater than the value for Max");
-            }
-        }
-
-        if(formField.Type.ToLower() == "dropdown") 
-        {
-            if(formField.Values == null) 
-            {
-                throw new Exception("The values for dropdown field cannot be null");
-            }
-
-            if(formField.Values.Count == 0) 
-            {
-                throw new Exception("The dropdown field should have at least one value to display");
-            }
-        }
-
     }
 }
