@@ -4,7 +4,7 @@ namespace DynamicFormBlazor.Models
 {
     public class FormModel
     {
-        [Required(ErrorMessage = "El campo Nombre es obligatorio.")]
+        [Required(ErrorMessage = "JSON Input is required")]
         public string JsonInput { get; set; }
     }
 }
